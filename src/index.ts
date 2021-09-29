@@ -1,7 +1,6 @@
-import { LayoutGenerator } from '@downpourdigital/bmfont-utils';
-import BMFont from '@downpourdigital/bmfont-utils/dist/cjs/types/BMFont';
-import { getCurrentRequest } from 'loader-utils';
-
+import { LayoutGenerator } from "@downpourdigital/bmfont-utils";
+import BMFont from "@downpourdigital/bmfont-utils/dist/cjs/types/BMFont";
+import { getCurrentRequest } from "loader-utils";
 
 interface PackedBMFont {
 	common: any;
@@ -10,17 +9,14 @@ interface PackedBMFont {
 	chars: number[][];
 }
 
-
-export default function load( source: string ) {
+export default function load(source: string) {
 	const callback = this.async();
-	const json: BMFont = JSON.parse( source );
-	let output = '';
-
+	const json: BMFont = JSON.parse(source);
+	let output = "";
 
 	// only generate font output if ?metricsOnly flag isn't set
 
-	if ( !/\?metricsOnly$/.test( getCurrentRequest( this ) ) ) {
-
+	if (!/\?metricsOnly$/.test(getCurrentRequest(this))) {
 		// create packed version of bmfont
 
 		const out: PackedBMFont = {
@@ -38,7 +34,7 @@ export default function load( source: string ) {
 				spacing: json.info.spacing,
 			},
 			kernings: [],
-			chars: json.chars.map( c => ([
+			chars: json.chars.map((c) => [
 				c.id,
 				c.x,
 				c.y,
@@ -47,39 +43,32 @@ export default function load( source: string ) {
 				c.xoffset,
 				c.yoffset,
 				c.xadvance,
-			]) ),
+			]),
 		};
-
 
 		// add kernings for included chars
 
-		const chars = json.chars.map( c => c.id );
+		const chars = json.chars.map((c) => c.id);
 
-		json.kernings.forEach( ( c ) => {
-			if ( chars.includes( c.first ) && chars.includes( c.second ) ) {
-				out.kernings.push([
-					c.first,
-					c.second,
-					c.amount,
-				]);
+		json.kernings.forEach((c) => {
+			if (chars.includes(c.first) && chars.includes(c.second)) {
+				out.kernings.push([c.first, c.second, c.amount]);
 			}
 		});
-
 
 		// mark pages as dependencies
 
 		const pages: string[] = [];
 
-		json.pages.forEach( ( s ) => {
-			this.addDependency( s );
-			pages.push( `require("./${s}")` );
+		json.pages.forEach((s) => {
+			this.addDependency(s);
+			pages.push(`require("./${s}").default`);
 		});
-
 
 		// add packed font and unpacker runtime to output
 
 		output += `
-			var o = ${JSON.stringify( out ).replace( /}$/, `,"pages":[${pages.join( ',' )}]}` )};
+			var o = ${JSON.stringify(out).replace(/}$/, `,"pages":[${pages.join(",")}]}`)};
 			o.chars = o.chars.map(function( c ) {
 				return { id: c[0], x: c[1], y: c[2], width: c[3], height: c[4], xoffset: c[5], yoffset: c[6], xadvance: c[7] }
 			});
@@ -92,10 +81,9 @@ export default function load( source: string ) {
 		`;
 	}
 
-
 	// get metrics by parsing BMFont
 
-	const generator = new LayoutGenerator( json );
+	const generator = new LayoutGenerator(json);
 	const metrics = {
 		capHeight: generator.capHeight,
 		xHeight: generator.xHeight,
@@ -103,7 +91,7 @@ export default function load( source: string ) {
 		descenderHeight: generator.descenderHeight,
 	};
 
-	output += `module.exports.metrics = ${JSON.stringify( metrics )};`;
+	output += `module.exports.metrics = ${JSON.stringify(metrics)};`;
 
-	callback( null, output );
+	callback(null, output);
 }
